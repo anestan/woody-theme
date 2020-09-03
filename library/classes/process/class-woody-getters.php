@@ -36,25 +36,34 @@ class WoodyTheme_WoodyGetters
      */
     public function getAutoFocusData($current_post, $wrapper, $paginate = false, $uniqid = 0, $ingore_maxnum = false, $posts_in = null, $filters = null)
     {
+        //TODO get AutoFocusData
         $the_items = [];
         $process = new WoodyTheme_WoodyProcess;
         $query_result = $process->processWoodyQuery($current_post, $wrapper, $paginate, $uniqid, $ingore_maxnum, $posts_in, $filters);
-
         // On transforme la donnée des posts récupérés pour coller aux templates de blocs Woody
         if (!empty($query_result->posts)) {
             foreach ($query_result->posts as $key => $post) {
-
                 // On vérifie si la page est de type miroir
                 $page_type = get_the_terms($post->ID, 'page_type');
-                if ($page_type[0]->slug == 'mirror_page') {
-                    $mirror = get_field('mirror_page_reference', $post->ID);
-                    if (!empty(get_post($mirror))) {
-                        $post = get_post($mirror);
+                // On vérifie si le champ focus_title de la page miroir est rempli
+                console_log(get_field('focus_title',  $post->ID), "check");
+                if (!empty(get_field('focus_title', $post->ID))) {
+                    if(empty(get_field('focus_img', $post->ID))){
+
+                    }
+                }else{
+                    if ($page_type[0]->slug == 'mirror_page') {
+                        $mirror = get_field('mirror_page_reference', $post->ID);
+                        if (!empty(get_post($mirror))) {
+                            $post = get_post($mirror);
+                        }
                     }
                 }
 
+
                 $data = [];
                 $data = $this->getPagePreview($wrapper, $post);
+                console_log($data, "data");
 
                 // $data['link']['title'] = (!empty($wrapper['links_label'])) ? $wrapper['links_label'] : '';
                 $the_items['items'][$key] = $data;
@@ -350,6 +359,15 @@ class WoodyTheme_WoodyGetters
         }
 
         if (!empty($wrapper['display_img'])) {
+            $page_type = get_the_terms($item->ID, 'page_type');
+            if ($page_type[0]->slug == 'mirror_page') {
+                if(empty(get_field('focus_img', $item->ID))){
+                    $mirror = get_field('mirror_page_reference', $item->ID);
+                    if (!empty(get_post($mirror))) {
+                        $item = get_post($mirror);
+                    }
+                }
+            }
             $data['img'] = $this->tools->getFieldAndFallback($item, 'focus_img', $item, 'field_5b0e5ddfd4b1b');
             if (empty($data['img'])) {
                 $video = $this->tools->getFieldAndFallback($item, 'field_5b0e5df0d4b1c', $item);
