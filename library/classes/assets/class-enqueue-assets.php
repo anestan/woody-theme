@@ -150,6 +150,10 @@ class WoodyTheme_Enqueue_Assets
         // if (WP_ENV == 'dev') {
         //     wp_enqueue_script('jsdelivr_jquery-migrate', 'https://cdn.jsdelivr.net/npm/jquery-migrate@3.0.1/dist/jquery-migrate.min.js', ['jquery'], null);
         // }
+        $is_fav = apply_filters('woody_get_field_option', 'favorites_page_url');
+        if (!empty($is_fav) && $is_fav === get_the_ID()) {
+            wp_enqueue_script('jsdelivr_html2canvas', 'https://cdn.jsdelivr.net/npm/html2canvas@1.0.0-alpha.12/dist/html2canvas.min.js', ['jquery'], '', false);
+        }
 
         // Dependencies of main.js
         wp_enqueue_script('jsdelivr_cookieconsent', 'https://cdn.jsdelivr.net/npm/cookieconsent@3.1.0/build/cookieconsent.min.js', [], null);
