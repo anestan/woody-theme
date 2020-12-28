@@ -19,9 +19,20 @@ class WoodyTheme_Template_TouristicSheet extends WoodyTheme_TemplateAbstract
     {
     }
 
-    protected function getHeaders()
+    protected function initHeaders()
     {
-        return $this->sheetHeaders();
+        if (!empty($this->context['sheet_tourism']['modified'])) {
+            header('Last-Modified: ' . gmdate('D, d M Y H:i:s', strtotime($this->context['sheet_tourism']['modified'])) . ' GMT');
+        }
+
+        $sheet_id = get_field('touristic_sheet_id', $this->context['post_id']);
+        if (!empty($sheet_id)) {
+            header('x-ts-idfiche:' . $sheet_id);
+        }
+
+        if (!empty($this->context['sheet_tourism']['apirender_uri'])) {
+            header('x-apirender-url:' . $this->context['sheet_tourism']['apirender_uri']);
+        }
     }
 
     protected function setTwigTpl()
@@ -111,28 +122,5 @@ class WoodyTheme_Template_TouristicSheet extends WoodyTheme_TemplateAbstract
         $title = preg_replace('/ #[0-9]+/', '', $title);
 
         return $title;
-    }
-
-    /***************************
-     * Configuration des HTTP headers
-     *****************************/
-    public function sheetHeaders()
-    {
-        $headers = [];
-        if (!empty($this->context['sheet_tourism']['modified'])) {
-            $headers['Last-Modified'] =  gmdate('D, d M Y H:i:s', strtotime($this->context['sheet_tourism']['modified'])) . ' GMT';
-        }
-        // if (!empty($this->context['sheet_tourism']['playlistId'])) {
-        //     $headers['x-ts-idplaylist'] = $this->context['sheet_tourism']['playlistId'];
-        // }
-        $sheet_id = get_field('touristic_sheet_id', $this->context['post_id']);
-        if (!empty($sheet_id)) {
-            $headers['x-ts-idfiche'] = $sheet_id;
-        }
-
-        if (!empty($this->context['sheet_tourism']['apirender_uri'])) {
-            $headers['x-apirender-url'] = $this->context['sheet_tourism']['apirender_uri'];
-        }
-        return $headers;
     }
 }

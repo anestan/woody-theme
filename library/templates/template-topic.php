@@ -29,12 +29,8 @@ class WoodyTheme_Template_Topic extends WoodyTheme_TemplateAbstract
         $this->twig_tpl = 'page.twig';
     }
 
-
-    protected function getHeaders()
+    protected function initHeaders()
     {
-        if ($this->context['page_type'] === 'playlist_tourism') {
-            return $this->playlistHeaders();
-        }
     }
 
     public function timberCompileData($data)

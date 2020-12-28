@@ -12,10 +12,10 @@ abstract class WoodyTheme_TemplateAbstract
     protected $context = [];
 
     // Force les classes filles à définir cette méthode
+    abstract protected function registerHooks();
+    abstract protected function initHeaders();
     abstract protected function setTwigTpl();
     abstract protected function extendContext();
-    abstract protected function registerHooks();
-    abstract protected function getHeaders();
 
     public function __construct()
     {
@@ -29,26 +29,17 @@ abstract class WoodyTheme_TemplateAbstract
         // Added Feature-Policy
         header('Feature-Policy: autoplay *');
 
+        // Load Globals Data
         add_filter('timber_compile_data', [$this, 'timberCompileData']);
 
-        $this->registerHooks();
+        // Init common context
         $this->initContext();
+
+        // Call children classes
+        $this->registerHooks();
+        $this->initHeaders();
         $this->setTwigTpl();
         $this->extendContext();
-
-        $headers = $this->getHeaders();
-        if (!empty($headers)) {
-            foreach ($headers as $key => $val) {
-                // allow val to be an array of value to set
-                if (is_array($val)) {
-                    foreach ($val as $key2 => $val2) {
-                        header($key . ': ' . $val2, false);
-                    }
-                } else {
-                    header($key . ': ' . $val);
-                }
-            }
-        }
     }
 
     public function timberCompileData($data)
@@ -124,10 +115,8 @@ abstract class WoodyTheme_TemplateAbstract
         $this->context['enabled_woody_options'] = WOODY_OPTIONS;
         $this->context['woody_access_staging'] = WOODY_ACCESS_STAGING;
 
-
-        $the_title = get_field('woodyseo_meta_title');
         // SEO Context
-
+        $the_title = get_field('woodyseo_meta_title');
         $this->context['title'] = (!empty($the_title)) ? woody_untokenize($the_title) : html_entity_decode(get_the_title()) . ' | ' . $this->context['site']['name'];
         $this->context['title'] = apply_filters('woody_seo_transform_pattern', $this->context['title']);
         $this->context['metas'] = $this->setMetadata();
@@ -181,21 +170,19 @@ abstract class WoodyTheme_TemplateAbstract
         }
 
         // Define Woody Components
-        $this->addWoodyComponents();
+        $this->context['woody_components'] = getWoodyTwigPaths();
 
         // GTM
-        $this->addGTM();
+        $this->context['gtm'] = WOODY_GTM;
 
         // Added Icons
-        $this->addIcons();
-
-        $tools_blocks = [];
+        $this->context['icons'] = apply_filters('woody_enqueue_favicons', null);
 
         // Add langSwitcher
+        $tools_blocks = [];
         $tools_blocks['lang_switcher_button'] = $this->addLanguageSwitcherButton();
         $this->context['lang_switcher_button'] = apply_filters('lang_switcher', $tools_blocks['lang_switcher_button']);
         $this->context['lang_switcher_button_mobile'] = apply_filters('lang_switcher_mobile', $tools_blocks['lang_switcher_button']);
-
         $this->context['lang_switcher_reveal'] = $this->addLanguageSwitcherReveal();
 
         // Add langSwitcher
@@ -207,7 +194,6 @@ abstract class WoodyTheme_TemplateAbstract
         $tools_blocks['es_search_button'] = $this->addEsSearchButton();
         $this->context['es_search_button'] = apply_filters('es_search_block', $tools_blocks['es_search_button']);
         $this->context['es_search_button_mobile'] = apply_filters('es_search_block_mobile', $tools_blocks['es_search_button']);
-
         $this->context['es_search_reveal'] = $this->addEsSearchReveal();
 
         // Add addFavoritesBlock
@@ -534,11 +520,6 @@ abstract class WoodyTheme_TemplateAbstract
         return $return;
     }
 
-    private function addWoodyComponents()
-    {
-        $this->context['woody_components'] = getWoodyTwigPaths();
-    }
-
     private function addHeaderFooter($tools_blocks = [])
     {
         // Define SubWoodyTheme_TemplateParts
@@ -556,17 +537,6 @@ abstract class WoodyTheme_TemplateAbstract
             $this->context['home_url'] = pll_home_url();
             $this->context['page_parts'] = $SubWoodyTheme_TemplateParts->getParts();
         }
-    }
-
-
-    private function addGTM()
-    {
-        $this->context['gtm'] = WOODY_GTM;
-    }
-
-    private function addIcons()
-    {
-        $this->context['icons'] = apply_filters('woody_enqueue_favicons', null);
     }
 
     private function addSeasonSwitcher()

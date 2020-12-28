@@ -31,10 +31,24 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
         add_filter('woody_seo_edit_metas_array', [$this, 'woodySeoCanonical'], 10, 1);
     }
 
-    protected function getHeaders()
+    protected function initHeaders()
     {
+        /***************************
+         * Configuration des HTTP headers
+         *****************************/
         if ($this->context['page_type'] === 'playlist_tourism') {
-            return $this->playlistHeaders();
+            if (!empty($this->context['playlist_tourism']['modified'])) {
+                header('Last-Modified: ' . gmdate('D, d M Y H:i:s', strtotime($this->context['playlist_tourism']['modified'])) . ' GMT');
+            }
+            if (!empty($this->context['playlist_tourism']['playlistId'])) {
+                header('xkey: ts-idplaylist-' . $this->context['playlist_tourism']['playlistId']);
+            }
+            if (!empty($this->context['playlist_tourism']['confId'])) {
+                header('xkey: hawwwai-idconf-' . $this->context['playlist_tourism']['confId']);
+            }
+            if (!empty($this->context['playlist_tourism']['apirender_uri'])) {
+                header('x-apirender-url: ' . $this->context['playlist_tourism']['apirender_uri']);
+            }
         }
     }
 
@@ -487,28 +501,6 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
             $code = intval($this->context['playlist_tourism']['status']);
             status_header($code);
         }
-    }
-
-    /***************************
-     * Configuration des HTTP headers
-     *****************************/
-    public function playlistHeaders()
-    {
-        $headers = [];
-        $headers['xkey'] = [];
-        if (!empty($this->context['playlist_tourism']['modified'])) {
-            $headers['Last-Modified'] = gmdate('D, d M Y H:i:s', strtotime($this->context['playlist_tourism']['modified'])) . ' GMT';
-        }
-        if (!empty($this->context['playlist_tourism']['playlistId'])) {
-            $headers['xkey'][] = 'ts-idplaylist-' . $this->context['playlist_tourism']['playlistId'];
-        }
-        if (!empty($this->context['playlist_tourism']['confId'])) {
-            $headers['xkey'][] = 'hawwwai-idconf-' . $this->context['playlist_tourism']['confId'];
-        }
-        if (!empty($this->context['playlist_tourism']['apirender_uri'])) {
-            $headers['x-apirender-url'] = $this->context['playlist_tourism']['apirender_uri'];
-        }
-        return $headers;
     }
 
     /***************************
