@@ -81,6 +81,7 @@ abstract class WoodyTheme_TemplateAbstract
     {
         $return = [];
 
+        //TODO: supprimer getPermalink des twig et le mettre ici
         $return['favorites_url'] = get_field('favorites_page_url', 'options');
         $return['search_url'] = get_field('es_search_page_url', 'options');
         $return['weather_url'] = get_field('weather_page_url', 'options');
@@ -102,18 +103,13 @@ abstract class WoodyTheme_TemplateAbstract
     {
         $this->context = Timber::get_context();
         $this->context['post_id'] = get_the_ID();
-        $this->context['current_url'] = get_permalink();
-        $this->context['site_key'] = WP_SITE_KEY;
+        $this->context['current_url'] = apply_filters('woody_get_permalink', $this->context['post_id']);
 
         // Default values
-        $this->context['post'] = false;
-        $this->context['post_title'] = false;
-        $this->context['sheet_id'] = false;
-        $this->context['page_type'] = false;
-        $this->context['metas'] = [];
-
-        $this->context['enabled_woody_options'] = WOODY_OPTIONS;
-        $this->context['woody_access_staging'] = WOODY_ACCESS_STAGING;
+        $this->context['post'] = null;
+        $this->context['post_title'] = null;
+        $this->context['sheet_id'] = null;
+        $this->context['page_type'] = null;
 
         // SEO Context
         $the_title = get_field('woodyseo_meta_title');
@@ -122,13 +118,11 @@ abstract class WoodyTheme_TemplateAbstract
         $this->context['metas'] = $this->setMetadata();
         $this->context['custom_meta'] = get_field('woody_custom_meta', 'options');
 
-        // Woody options pages
-        $this->context['woody_options_pages'] = $this->getWoodyOptionsPagesValues();
-
         /******************************************************************************
          * Sommes nous dans le cas d'une page miroir ?
          ******************************************************************************/
 
+        //TODO: devrait être dans le template-page.php, non ?
         $terms = get_the_terms($this->context['post_id'], 'page_type');
         $is_mirror_page = false;
         if (!empty($terms) && is_array($terms)) {
@@ -152,15 +146,18 @@ abstract class WoodyTheme_TemplateAbstract
                 $this->context['post_title'] = $this->context['post']->post_title;
                 $this->context['post_id'] = $this->context['post']->ID;
                 if (!empty($this->context['post_id'])) {
+                    //TODO: A bouger dans l'addon Hawwwai
                     $this->context['sheet_id'] = get_post_type($this->context['post_id']) === 'touristic_sheet' ? get_post_meta($this->context['post_id'], 'touristic_sheet_id')[0] : false;
                 }
             }
         }
 
+        //TODO: devrait être dans le template-page.php, non ?
         if (!empty($this->context['post'])) {
             $this->context['page_type'] = getTermsSlugs($this->context['post_id'], 'page_type', true);
         }
 
+        //TODO: devrait être dans le template-page.php, non ?
         if (!empty($this->context['page_type'])) {
             $this->context['body_class'] = $this->context['body_class'] . ' woodypage-' . $this->context['page_type'];
         }
@@ -168,15 +165,6 @@ abstract class WoodyTheme_TemplateAbstract
         if (!empty($this->context['woody_access_staging'])) {
             $this->context['body_class'] = $this->context['body_class'] . ' woody_staging';
         }
-
-        // Define Woody Components
-        $this->context['woody_components'] = getWoodyTwigPaths();
-
-        // GTM
-        $this->context['gtm'] = WOODY_GTM;
-
-        // Added Icons
-        $this->context['icons'] = apply_filters('woody_enqueue_favicons', null);
 
         // Add langSwitcher
         $tools_blocks = [];
@@ -197,13 +185,13 @@ abstract class WoodyTheme_TemplateAbstract
         $this->context['es_search_reveal'] = $this->addEsSearchReveal();
 
         // Add addFavoritesBlock
-        if (in_array('favorites', $this->context['enabled_woody_options'])) {
+        if (in_array('favorites', $this->context['woody_options_enabled'])) {
             $tools_blocks['favorites_block'] = $this->addFavoritesBlock();
             $this->context['favorites_block'] = apply_filters('favorites_block', $tools_blocks['favorites_block']);
             $this->context['favorites_block_mobile'] = apply_filters('favorites_block_mobile', $tools_blocks['favorites_block']);
         }
 
-        if (in_array('insitu', $this->context['enabled_woody_options'])) {
+        if (in_array('insitu', $this->context['woody_options_enabled'])) {
             $tools_blocks['preparespot_switcher'] = $this->addPrepareSpotSwitcher();
             $this->context['preparespot_switcher'] = apply_filters('preparespot_switcher', $tools_blocks['preparespot_switcher']);
         }
@@ -213,9 +201,6 @@ abstract class WoodyTheme_TemplateAbstract
 
         // Define SubWoodyTheme_TemplateParts
         $this->addHeaderFooter($tools_blocks);
-
-        // Set a global dist dir
-        $this->context['dist_dir'] = WP_DIST_DIR;
     }
 
     private function setMetadata()
@@ -231,7 +216,7 @@ abstract class WoodyTheme_TemplateAbstract
                 '#tag' => 'link',
                 '#attributes' => [
                     'rel' => 'canonical',
-                    'href' => apply_filters('woody_get_permalink', $this->context['post_id'])
+                    'href' => $this->context['current_url']
                 ]
             ],
             'charset' => [
@@ -396,7 +381,6 @@ abstract class WoodyTheme_TemplateAbstract
 
                         break;
                     case 'woodyseo_fb_title':
-
                         $return['og:title'] = [
                             '#tag' => 'meta',
                                 '#attributes' => [
@@ -512,7 +496,7 @@ abstract class WoodyTheme_TemplateAbstract
 
         // On ajoute la meta desc à la racine du contexte pour y accéder rapidement
         if (!empty($return['description'])) {
-            $this->context['description'] = $return['description']['#attributes']['content'];
+            $return['meta_description'] = trim($return['description']['#attributes']['content']);
         }
 
         // On permet la surcharge des metadata
@@ -532,8 +516,6 @@ abstract class WoodyTheme_TemplateAbstract
                 $this->context['website_logo'] = $SubWoodyTheme_TemplateParts->website_logo;
             }
 
-            $pll_options = get_option('polylang');
-
             $this->context['home_url'] = pll_home_url();
             $this->context['page_parts'] = $SubWoodyTheme_TemplateParts->getParts();
         }
@@ -551,8 +533,7 @@ abstract class WoodyTheme_TemplateAbstract
             $tpl = apply_filters('season_switcher_tpl', null);
             $template = has_filter('season_switcher_tpl') ? $this->context['woody_components'][$tpl['template']] : $this->context['woody_components']['woody_widgets-season_switcher-tpl_01'];
 
-            $return = \Timber::compile($template, $data);
-            return $return;
+            return \Timber::compile($template, $data);
         }
     }
 
@@ -570,8 +551,7 @@ abstract class WoodyTheme_TemplateAbstract
             // Allow data override
             $data = apply_filters('lang_switcher_data', $data);
 
-            $return = (!empty($data)) ? \Timber::compile($template, $data) : '';
-            return $return;
+            return (!empty($data)) ? \Timber::compile($template, $data) : '';
         }
     }
 
@@ -589,11 +569,9 @@ abstract class WoodyTheme_TemplateAbstract
 
             // Allow data override
             $data = apply_filters('lang_switcher_data', $data);
-
             $compile = \Timber::compile($template, $data);
-            $compile = apply_filters('lang_switcher_compile', $compile);
 
-            return $compile;
+            return apply_filters('lang_switcher_compile', $compile);
         }
     }
 
@@ -601,7 +579,7 @@ abstract class WoodyTheme_TemplateAbstract
     {
         $data = [];
 
-        // Save the $_GET
+        // TODO: filter_input $_GET (Faille de sécurité)
         $autoselect_id = !empty($_GET['autoselect_id']) ? 'autoselect_id=' . $_GET['autoselect_id'] : '';
         $page = !empty($_GET['page']) ? 'page=' . $_GET['page'] : '';
         $output_params = !empty($autoselect_id) ? $autoselect_id . '&' : '';
@@ -662,7 +640,7 @@ abstract class WoodyTheme_TemplateAbstract
         }
 
         if (!empty($data['langs']) && count($data['langs']) == 1) {
-            return[];
+            $data = [];
         }
 
         return $data;
@@ -723,9 +701,8 @@ abstract class WoodyTheme_TemplateAbstract
             $data = apply_filters('es_search_block_data', $data);
 
             $compile = \Timber::compile($template, $data);
-            $compile = apply_filters('es_search_compile', $compile);
 
-            return $compile;
+            return apply_filters('es_search_compile', $compile);
         }
     }
 

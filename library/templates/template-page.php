@@ -292,7 +292,7 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
             $trip_infos = getAcfGroupFields('group_5b6c5e6ff381d', $this->context['post']);
 
             // Si le module groupe est activé
-            if (in_array('groups', $this->context['enabled_woody_options'])) {
+            if (in_array('groups', $this->context['woody_options_enabled'])) {
                 if ($trip_infos['the_price']['price_type'] == 'component_based') {
                     $groupQuotation = new GroupQuotation;
                     $trip_infos['the_price'] = $groupQuotation->calculTripPrice($trip_infos['the_price']);

@@ -83,19 +83,26 @@ if (!class_exists('Timber')) {
         public static function get_context()
         {
             if (empty(self::$context_cache)) {
-                self::$context_cache['http_host'] = home_url();
                 self::$context_cache['body_class'] = implode(' ', get_body_class());
-                self::$context_cache['wp_head'] = self::ob_function('wp_head');
+                self::$context_cache['dist_dir'] = WP_DIST_DIR;
+                self::$context_cache['woody_options_enabled'] = WOODY_OPTIONS;
+                self::$context_cache['gtm'] = WOODY_GTM;
+                self::$context_cache['http_host'] = home_url(); // TODO: utiliser site.url (et vérifier si fonctionne dans toutes les langues)
+                self::$context_cache['icons'] = apply_filters('woody_enqueue_favicons', null);
+                self::$context_cache['site_key'] = WP_SITE_KEY;
+                self::$context_cache['woody_access_staging'] = WOODY_ACCESS_STAGING;
+                self::$context_cache['woody_components'] = getWoodyTwigPaths();
                 self::$context_cache['wp_footer'] = self::ob_function('wp_footer');
+                self::$context_cache['wp_head'] = self::ob_function('wp_head');
                 self::$context_cache['site'] = [
-                    'charset' => get_bloginfo('charset'),
+                    'charset' => trim(get_bloginfo('charset')),
                     'pingback' => get_bloginfo('pingback_url'),
                     'language' => get_bloginfo('language'),
                     'language_attributes' => get_language_attributes(),
                     'url' => home_url(),
-                    'title' => get_bloginfo('name'),
-                    'name' => get_bloginfo('name'),
-                    'description' => get_bloginfo('description'),
+                    'title' => trim(get_bloginfo('name')),
+                    'name' => trim(get_bloginfo('name')),
+                    'description' => trim(get_bloginfo('description')),
                 ];
             }
 
