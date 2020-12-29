@@ -84,7 +84,6 @@ class WoodyTheme_Template_Topic extends WoodyTheme_TemplateAbstract
 
         $this->context['woody_components'] = getWoodyTwigPaths();
 
-        $this->context['sections'] = [];
         $manual_focus = $this->create_manual_focus($this->context['post']);
         $section = $this->page_create_section(['section_content' => [$manual_focus]]);
         $this->context['the_sections'] = $this->process->processWoodySections(['sections' => $section], $this->context);

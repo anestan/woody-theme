@@ -71,7 +71,6 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
             if (post_password_required($this->context['post'])) {
                 echo get_the_password_form($this->context['post']);
             } else {
-                $this->commonContext();
                 $this->pageContext();
             }
         }
@@ -123,52 +122,149 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
     protected function pageContext()
     {
         $this->context['is_frontpage'] = false;
+        $this->context['page_terms'] = implode(' ', getPageTerms($this->context['post_id']));
+        $this->context['default_marker'] = file_get_contents($this->context['dist_dir'] . '/img/default-marker.svg');
 
-        $social_shares = getActiveShares();
-        $this->context['social_shares'] = \Timber::compile($this->context['woody_components']['blocks-shares-tpl_01'], $social_shares);
+        $this->setHidePageZones();
+        $this->setParamsToNoIndex();
+        $this->setSections();
+        $this->setTripPrices();
+        $this->setPrintable();
 
-        /******************************************************************************
-         * Compilation du Diaporama pour les pages de type "accueil" (!= frontpage)
-         ******************************************************************************/
-        $page_type = wp_get_post_terms($this->context['post_id'], 'page_type');
-        if (!empty($page_type[0]) && $page_type[0]->slug == 'front_page') {
-            $this->context['is_frontpage'] = true;
-            $home_slider = getAcfGroupFields('group_5bb325e8b6b43', $this->context['post']);
-
-            $plyr_options = [
-                'muted' => true,
-                'autoplay' => true,
-                'controls' => ['volume', 'mute'],
-                'loop' => ['active' => true]
-            ];
-
-            $home_slider['plyr_options'] = json_encode($plyr_options);
-
-            if (!empty($home_slider['landswpr_slides'])) {
-                foreach ($home_slider['landswpr_slides'] as $slide_key => $slide) {
-                    // Si on est dans le cas d'une vidéo oEmbed, on récupère la plus grande miniature possible
-                    // Permet d'afficher un poster le temps du chargement de Plyr
-                    if (!empty($slide['landswpr_slide_media']) && $slide['landswpr_slide_media']['landswpr_slide_media_type'] == 'embed' && !empty($slide['landswpr_slide_media']['landswpr_slide_embed'])) {
-                        if (!empty(embedProviderThumbnail($slide['landswpr_slide_media']['landswpr_slide_embed']))) {
-                            $home_slider['landswpr_slides'][$slide_key]['landswpr_slide_media']['landswpr_slide_embed_thumbnail_url'] = embedProviderThumbnail($slide['landswpr_slide_media']['landswpr_slide_embed']);
-                        }
-                    }
-
-                    if (!empty($slide['landswpr_slide_media']) && $slide['landswpr_slide_media']['landswpr_slide_media_type'] == 'img' && !empty($slide['landswpr_slide_media']['landswpr_slide_img'])) {
-                        $home_slider['landswpr_slides'][$slide_key]['landswpr_slide_media']['landswpr_slide_img']['lazy'] = 'disabled';
-                    }
-                }
-
-                $this->context['home_slider'] = \Timber::compile($this->context['woody_components'][$home_slider['landswpr_woody_tpl']], $home_slider);
-            }
-
-            $this->context['after_landswpr'] = !empty($this->context['page_parts']['after_landswpr']) ? $this->context['page_parts']['after_landswpr'] : '';
+        /*********************************************
+         * Check type de publication
+         *********************************************/
+        if ($this->context['page_type'] === 'playlist_tourism') {
+            $this->playlistContext();
         }
 
         /*********************************************
-         * Compilation du bloc prix
+         * Compilation de l'en tête de page et du visuel et accroche pour les pages qui ne sont pas de type "accueil"
          *********************************************/
+        $page_type = wp_get_post_terms($this->context['post_id'], 'page_type');
+        if (!empty($page_type[0]) && $page_type[0]->slug != 'front_page') {
+            $this->setTeaserHero();
+            $this->setSocialShares();
+        } else {
+            $this->setLandSwiper();
+            $this->setBookblock();
+        }
 
+        $this->context = apply_filters('woody_page_context', $this->context);
+    }
+
+    /*********************************************
+     * Hide Page Zones + PocketSite
+     *********************************************/
+    protected function setHidePageZones()
+    {
+        $this->context['hide_page_zones'] = get_field('hide_page_zones');
+        $this->context['is_pocketsite'] = !empty($this->context['mirror_id']) ? apply_filters('is_pocketsite', false, $this->context['mirror_id']) : apply_filters('is_pocketsite', false, $this->context['post_id']);
+
+        if ($this->context['is_pocketsite']) {
+            if (empty($this->context['hide_page_zones'])) {
+                $this->context['hide_page_zones'] = ['header', 'footer', 'breadcrumb'];
+            }
+            $id = !empty($this->context['mirror_id']) ? $this->context['mirror_id'] : $this->context['post_id'];
+            $this->context['pocketsite_menu'] = apply_filters('pocketsite_menu', '', $id);
+        }
+
+        if (is_array($this->context['hide_page_zones'])) {
+            if (in_array('header', $this->context['hide_page_zones'])) {
+                $this->context['body_class'] = $this->context['body_class'] . ' no-page-header';
+            }
+            if (in_array('footer', $this->context['hide_page_zones'])) {
+                $this->context['body_class'] = $this->context['body_class'] . ' no-page-footer';
+            }
+        }
+    }
+
+    /*********************************************
+     * NoIndex Params
+     *********************************************/
+    protected function setParamsToNoIndex()
+    {
+        $noindex = false;
+        if (!empty($_GET) && is_array($_GET)) {
+            $input = array_keys($_GET);
+            foreach ($input as $get) {
+                if (strpos($get, 'section_') !== false || $get == 'listpage' || $get == 'autoselect_id') {
+                    $noindex = true;
+                }
+            }
+        }
+
+        if ($noindex) {
+            $robots_content = $this->context['metas']['robots']['#attributes']['content'];
+            if (strpos($robots_content, 'noindex') == false) {
+                $this->context['metas']['robots']['#attributes']['content'] = $robots_content . ', noindex';
+            }
+        }
+    }
+
+    /******************************************************************************
+    * Compilation du Diaporama pour les pages de type "accueil" (!= frontpage)
+    ******************************************************************************/
+    protected function setTeaserHero()
+    {
+        $this->context['page_teaser'] = $this->compilers->formatPageTeaser($this->context);
+        $this->context['page_hero'] = $this->compilers->formatPageHero($this->context);
+    }
+
+    /******************************************************************************
+    * Compilation du Diaporama pour les pages de type "accueil" (!= frontpage)
+    ******************************************************************************/
+    protected function setLandSwiper()
+    {
+        $this->context['is_frontpage'] = true;
+        $home_slider = getAcfGroupFields('group_5bb325e8b6b43', $this->context['post']);
+
+        $plyr_options = [
+            'muted' => true,
+            'autoplay' => true,
+            'controls' => ['volume', 'mute'],
+            'loop' => ['active' => true]
+        ];
+
+        $home_slider['plyr_options'] = json_encode($plyr_options);
+
+        if (!empty($home_slider['landswpr_slides'])) {
+            foreach ($home_slider['landswpr_slides'] as $slide_key => $slide) {
+                // Si on est dans le cas d'une vidéo oEmbed, on récupère la plus grande miniature possible
+                // Permet d'afficher un poster le temps du chargement de Plyr
+                if (!empty($slide['landswpr_slide_media']) && $slide['landswpr_slide_media']['landswpr_slide_media_type'] == 'embed' && !empty($slide['landswpr_slide_media']['landswpr_slide_embed'])) {
+                    if (!empty(embedProviderThumbnail($slide['landswpr_slide_media']['landswpr_slide_embed']))) {
+                        $home_slider['landswpr_slides'][$slide_key]['landswpr_slide_media']['landswpr_slide_embed_thumbnail_url'] = embedProviderThumbnail($slide['landswpr_slide_media']['landswpr_slide_embed']);
+                    }
+                }
+
+                if (!empty($slide['landswpr_slide_media']) && $slide['landswpr_slide_media']['landswpr_slide_media_type'] == 'img' && !empty($slide['landswpr_slide_media']['landswpr_slide_img'])) {
+                    $home_slider['landswpr_slides'][$slide_key]['landswpr_slide_media']['landswpr_slide_img']['lazy'] = 'disabled';
+                }
+            }
+
+            $this->context['home_slider'] = \Timber::compile($this->context['woody_components'][$home_slider['landswpr_woody_tpl']], $home_slider);
+        }
+
+        $this->context['after_landswpr'] = !empty($this->context['page_parts']['after_landswpr']) ? $this->context['page_parts']['after_landswpr'] : '';
+    }
+
+    /*********************************************
+     * Si on est sur la page favoris, on ajoute un bouton pour l'impression
+     *********************************************/
+    protected function setPrintable()
+    {
+        $is_fav = apply_filters('woody_get_field_option', 'favorites_page_url');
+        if (!empty($is_fav) && $is_fav === $this->context['post_id']) {
+            $this->context['printable'] = true;
+        }
+    }
+
+    /*********************************************
+     * Compilation du bloc prix
+     *********************************************/
+    protected function setTripPrices()
+    {
         $trip_types = [];
         $trip_term = get_term_by('slug', 'trip', 'page_type');
         if (!empty($trip_term)) {
@@ -192,7 +288,6 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
         }
 
         $trip_types = apply_filters('woody_trip_types', $trip_types);
-
         if (in_array($this->context['page_type'], $trip_types)) {
             $trip_infos = getAcfGroupFields('group_5b6c5e6ff381d', $this->context['post']);
 
@@ -248,66 +343,17 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
                 $trip_infos['the_duration']['count_days'] = ($trip_infos['the_duration']['count_days']) ? humanDays($trip_infos['the_duration']['count_days']) : '';
                 $trip_infos['the_price']['price'] = (!empty($trip_infos['the_price']['price'])) ? str_replace('.', ',', $trip_infos['the_price']['price']) : '';
                 $this->context['trip_infos'] = \Timber::compile($this->context['woody_components'][$trip_infos['tripinfos_woody_tpl']], $trip_infos);
-            } else {
-                $trip_infos = [];
             }
         }
-
-        // Compilation de l'en tête de page et du visuel et accroche pour les pages qui ne sont pas de type "accueil"
-        if (!empty($page_type[0]) && $page_type[0]->slug != 'front_page') {
-            $this->context['page_teaser'] = $this->compilers->formatPageTeaser($this->context);
-            $this->context['page_hero'] = $this->compilers->formatPageHero($this->context);
-        }
-
-        // Si on est sur la page favoris, on ajoute un bouton pour l'impression
-        $is_fav = apply_filters('woody_get_field_option', 'favorites_page_url');
-        if (!empty($is_fav) && $is_fav === $this->context['post_id']) {
-            $this->context['printable'] = true;
-        }
-
-        $this->context = apply_filters('woody_page_context', $this->context);
     }
 
-    protected function commonContext()
+    /*********************************************
+     * Compilation du bloc de réservation
+     *********************************************/
+    protected function setBookblock()
     {
-        $this->context['page_terms'] = implode(' ', getPageTerms($this->context['post_id']));
-        $this->context['default_marker'] = file_get_contents($this->context['dist_dir'] . '/img/default-marker.svg');
-        $this->context['hide_page_zones'] = get_field('hide_page_zones');
-        $this->context['is_pocketsite'] = !empty($this->context['mirror_id']) ? apply_filters('is_pocketsite', false, $this->context['mirror_id']) : apply_filters('is_pocketsite', false, $this->context['post_id']);
-
-        if ($this->context['is_pocketsite']) {
-            if (empty($this->context['hide_page_zones'])) {
-                $this->context['hide_page_zones'] = ['header', 'footer', 'breadcrumb'];
-            }
-            $id = !empty($this->context['mirror_id']) ? $this->context['mirror_id'] : $this->context['post_id'];
-            $this->context['pocketsite_menu'] = apply_filters('pocketsite_menu', '', $id);
-        }
-
-        if (is_array($this->context['hide_page_zones'])) {
-            if (in_array('header', $this->context['hide_page_zones'])) {
-                $this->context['body_class'] = $this->context['body_class'] . ' no-page-header';
-            }
-            if (in_array('footer', $this->context['hide_page_zones'])) {
-                $this->context['body_class'] = $this->context['body_class'] . ' no-page-footer';
-            }
-        }
-
-        $this->getParamsToNoIndex();
-
-        /*********************************************
-         * Check type de publication
-         *********************************************/
-        if ($this->context['page_type'] === 'playlist_tourism') {
-            $this->playlistContext();
-        }
-
-        /*********************************************
-         * Compilation du bloc de réservation
-         *********************************************/
-        $bookblock = [];
         $bookblock = getAcfGroupFields('group_5c0e4121ee3ed', $this->context['post']);
-
-        if (!empty($bookblock['bookblock_playlists'][0]['pl_post_id'])) {
+        if (!empty($bookblock) && !empty($bookblock['bookblock_playlists'][0]['pl_post_id'])) {
             $bookblock['the_classes'] = [];
             $bookblock['the_classes'][] = (!empty($bookblock['bookblock_bg_params']['background_img_opacity'])) ? $bookblock['bookblock_bg_params']['background_img_opacity'] : '';
             $bookblock['the_classes'][] = (!empty($bookblock['bookblock_bg_params']['background_color'])) ? $bookblock['bookblock_bg_params']['background_color'] : '';
@@ -358,36 +404,28 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
 
             $this->context['bookblock'] = \Timber::compile($this->context['woody_components'][$bookblock['bookblock_woody_tpl']], $bookblock);
         }
+    }
 
-
-        /*********************************************
-         * Compilation des sections
-         *********************************************/
-        $this->context['sections'] = [];
+    /*********************************************
+     * Compilation des sections
+     *********************************************/
+    protected function setSections()
+    {
         if (!empty($this->context['post'])) {
             $sections = get_field('section', $this->context['post']->ID);
-            $this->context['the_sections'] = $this->process->processWoodySections($sections, $this->context);
+            if (!empty($sections)) {
+                $this->context['the_sections'] = $this->process->processWoodySections($sections, $this->context);
+            }
         }
     }
 
-    protected function getParamsToNoIndex()
+    /*********************************************
+     * Compilation Social Shares
+     *********************************************/
+    protected function setSocialShares()
     {
-        $get = $_GET;
-        $noindex = false;
-        if (!empty($get)) {
-            foreach ($get as $key => $value) {
-                if (strpos($key, 'section_') !== false || $key == 'listpage' || $key == 'autoselect_id') {
-                    $noindex = true;
-                }
-            }
-        }
-
-        if ($noindex == true) {
-            $robots_content = $this->context['metas']['robots']['#attributes']['content'];
-            if (strpos($robots_content, 'noindex') == false) {
-                $this->context['metas']['robots']['#attributes']['content'] = $robots_content . ', noindex';
-            }
-        }
+        $social_shares = getActiveShares();
+        $this->context['social_shares'] = \Timber::compile($this->context['woody_components']['blocks-shares-tpl_01'], $social_shares);
     }
 
     protected function playlistContext()
