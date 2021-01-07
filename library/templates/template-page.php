@@ -8,14 +8,12 @@
  */
 
 use Woody\Modules\GroupQuotation\GroupQuotation;
-use WoodyTheme\Process\WoodyTheme_WoodyProcessTools;
-use WoodyTheme\Process\WoodyTheme_WoodyProcess;
-use WoodyTheme\Process\WoodyTheme_WoodyProcessCompilers;
 
 class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
 {
     use \WoodyTheme\Process\WoodyThemeTrait_WoodyProcessTools;
     use \WoodyTheme\Process\WoodyThemeTrait_WoodyProcess;
+    use \WoodyTheme\Process\WoodyThemeTrait_WoodyProcessCompilers;
 
     protected $twig_tpl = '';
     protected $tools;
@@ -23,9 +21,6 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
 
     public function __construct()
     {
-        $this->tools = new WoodyTheme_WoodyProcessTools;
-        $this->process = new WoodyTheme_WoodyProcess;
-        $this->compilers = new WoodyTheme_WoodyProcessCompilers;
         parent::__construct();
     }
 
@@ -210,8 +205,8 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
     ******************************************************************************/
     protected function setTeaserHero()
     {
-        $this->context['page_teaser'] = $this->compilers->formatPageTeaser($this->context);
-        $this->context['page_hero'] = $this->compilers->formatPageHero($this->context);
+        $this->context['page_teaser'] = $this->formatPageTeaser($this->context);
+        $this->context['page_hero'] = $this->formatPageHero($this->context);
     }
 
     /******************************************************************************

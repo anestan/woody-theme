@@ -6,17 +6,13 @@
  * @package WoodyTheme
  * @since WoodyTheme 1.25.2
  */
-
-use WoodyTheme\Process\WoodyTheme_WoodyProcessCompilers;
-use WoodyTheme\Process\WoodyTheme_WoodyProcessTools;
-
 class WoodyTheme_Shuffle
 {
+    use \WoodyTheme\Process\WoodyThemeTrait_WoodyProcessTools;
+    use \WoodyTheme\Process\WoodyThemeTrait_WoodyProcessCompilers;
+
     public function __construct()
     {
-        $this->compilers = new WoodyTheme_WoodyProcessCompilers;
-        $this->tools = new WoodyTheme_WoodyProcessTools;
-
         $this->registerHooks();
     }
 
@@ -61,10 +57,10 @@ class WoodyTheme_Shuffle
                     $twig_paths = getWoodyTwigPaths();
 
                     if (!empty($wrapper['visual_effects']['transform'])) {
-                        $wrapper['visual_effects'] = $this->tools->formatVisualEffectData($wrapper['visual_effects']);
+                        $wrapper['visual_effects'] = $this->formatVisualEffectData($wrapper['visual_effects']);
                     }
 
-                    $return = $this->compilers->formatFocusesData($wrapper, $current_post, $twig_paths);
+                    $return = $this->formatFocusesData($wrapper, $current_post, $twig_paths);
                 }
             }
         }

@@ -7,13 +7,12 @@
  * @since WoodyTheme 1.17.7
  */
 
-use WoodyTheme\Process\WoodyTheme_WoodyProcess;
-
 class WoodyTheme_Template_Topic extends WoodyTheme_TemplateAbstract
 {
+    use \WoodyTheme\Process\WoodyThemeTrait_WoodyProcess;
+
     public function __construct()
     {
-        $this->process = new WoodyTheme_WoodyProcess;
         $this->registerHooks();
         $this->setTwigTpl();
         $this->extendContext();
@@ -86,7 +85,7 @@ class WoodyTheme_Template_Topic extends WoodyTheme_TemplateAbstract
 
         $manual_focus = $this->create_manual_focus($this->context['post']);
         $section = $this->page_create_section(['section_content' => [$manual_focus]]);
-        $this->context['the_sections'] = $this->process->processWoodySections(['sections' => $section], $this->context);
+        $this->context['the_sections'] = $this->processWoodySections(['sections' => $section], $this->context);
     }
 
     /**

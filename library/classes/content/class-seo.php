@@ -11,6 +11,8 @@ use WoodyTheme\Process\WoodyTheme_WoodyProcessTools;
 
 class WoodyTheme_Seo
 {
+    use \WoodyTheme\Process\WoodyThemeTrait_WoodyProcessTools;
+
     public function __construct()
     {
         $this->registerHooks();
@@ -30,8 +32,7 @@ class WoodyTheme_Seo
 
     public function woodySeoTransformPattern($string)
     {
-        $tools = new WoodyTheme_WoodyProcessTools;
-        $string = $tools->replacePattern($string, get_the_ID());
+        $string = $this->replacePattern($string, get_the_ID());
         return $string;
     }
 
