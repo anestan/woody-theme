@@ -7,7 +7,7 @@
  * @since WoodyTheme 1.0.0
  */
 
-use WoodyProcess\Tools\WoodyTheme_WoodyProcessTools;
+use WoodyTheme\Process\WoodyTheme_WoodyProcessTools;
 
 class WoodyTheme_Seo
 {

@@ -89,7 +89,7 @@ new WoodyTheme_Roles();
 new WoodyTheme_Inclusions();
 
 // Data Processing
-new WoodyProcess\Compilers\WoodyTheme_WoodyCompilers();
-new WoodyProcess\Getters\WoodyTheme_WoodyGetters();
-new WoodyProcess\Process\WoodyTheme_WoodyProcess();
-new WoodyProcess\Tools\WoodyTheme_WoodyProcessTools();
+new WoodyTheme\Process\WoodyTheme_WoodyProcessCompilers();
+new WoodyTheme\Process\WoodyTheme_WoodyProcessGetters();
+new WoodyTheme\Process\WoodyTheme_WoodyProcess();
+new WoodyTheme\Process\WoodyTheme_WoodyProcessTools();

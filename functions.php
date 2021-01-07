@@ -33,6 +33,13 @@ foreach ($finder as $file) {
     require_once($file->getPathname());
 }
 
+//Load Traits
+$finder = new Finder();
+$finder->files()->in(WOODY_THEME_DIR . '/library/traits')->name('*.php')->sortByName();
+foreach ($finder as $file) {
+    require_once($file->getPathname());
+}
+
 // Load classes
 $finder = new Finder();
 $finder->files()->in(WOODY_THEME_DIR . '/library/classes/*')->name('*.php')->notName('autoloader.php');

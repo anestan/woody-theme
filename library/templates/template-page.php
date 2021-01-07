@@ -8,12 +8,15 @@
  */
 
 use Woody\Modules\GroupQuotation\GroupQuotation;
-use WoodyProcess\Tools\WoodyTheme_WoodyProcessTools;
-use WoodyProcess\Process\WoodyTheme_WoodyProcess;
-use WoodyProcess\Compilers\WoodyTheme_WoodyCompilers;
+use WoodyTheme\Process\WoodyTheme_WoodyProcessTools;
+use WoodyTheme\Process\WoodyTheme_WoodyProcess;
+use WoodyTheme\Process\WoodyTheme_WoodyProcessCompilers;
 
 class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
 {
+    use \WoodyTheme\Process\WoodyThemeTrait_WoodyProcessTools;
+    use \WoodyTheme\Process\WoodyThemeTrait_WoodyProcess;
+
     protected $twig_tpl = '';
     protected $tools;
     protected $process;
@@ -22,7 +25,7 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
     {
         $this->tools = new WoodyTheme_WoodyProcessTools;
         $this->process = new WoodyTheme_WoodyProcess;
-        $this->compilers = new WoodyTheme_WoodyCompilers;
+        $this->compilers = new WoodyTheme_WoodyProcessCompilers;
         parent::__construct();
     }
 
@@ -414,7 +417,7 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
         if (!empty($this->context['post'])) {
             $sections = get_field('section', $this->context['post']->ID);
             if (!empty($sections)) {
-                $this->context['the_sections'] = $this->process->processWoodySections($sections, $this->context);
+                $this->context['the_sections'] = $this->processWoodySections($sections, $this->context);
             }
         }
     }

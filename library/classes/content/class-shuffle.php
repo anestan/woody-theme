@@ -7,14 +7,14 @@
  * @since WoodyTheme 1.25.2
  */
 
-use WoodyProcess\Compilers\WoodyTheme_WoodyCompilers;
-use WoodyProcess\Tools\WoodyTheme_WoodyProcessTools;
+use WoodyTheme\Process\WoodyTheme_WoodyProcessCompilers;
+use WoodyTheme\Process\WoodyTheme_WoodyProcessTools;
 
 class WoodyTheme_Shuffle
 {
     public function __construct()
     {
-        $this->compilers = new WoodyTheme_WoodyCompilers;
+        $this->compilers = new WoodyTheme_WoodyProcessCompilers;
         $this->tools = new WoodyTheme_WoodyProcessTools;
 
         $this->registerHooks();
