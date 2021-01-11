@@ -23,12 +23,14 @@
                     {% endif %}
                 {% endif %}
             {% endblock %}
+            {# TODO: Get page_hero in page parts #}
             {{ page_hero|default }}
 
             {{ page_parts.after_hero|default }}
 
             {% block page_teaser %}
                 <header class="page-teaser" id="the-page-teaser">
+                    {# TODO: Get page_teaser in page parts #}
                     {{ page_teaser }}
                 </header>
             {% endblock %}
@@ -44,6 +46,7 @@
             {% block home_slider %}
                 {% if home_slider|default %}
                     <div class="home-slider">
+                        {# TODO: Get home_slider in page_parts #}
                         {{ home_slider }}
                         {% if bookblock|default or page_parts.custom_bookblock|default %}
                             <div class="bookblock-wrapper">
@@ -94,6 +97,7 @@
                 </div>
                 {% endif %}
             {% endblock %}
+            {# TODO: Get the_sections in page_parts #}
             {% for key, section in the_sections %}
                 {% if section is empty %}
                 {% else %}

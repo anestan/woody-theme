@@ -205,6 +205,8 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
     ******************************************************************************/
     protected function setTeaserHero()
     {
+        //TODO: move into $this->context['page_parts];
+        // !!! Changer le twig
         $this->context['page_teaser'] = $this->formatPageTeaser($this->context);
         $this->context['page_hero'] = $this->formatPageHero($this->context);
     }
@@ -241,6 +243,8 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
                 }
             }
 
+            //TODO: move into $this->context['page_parts];
+            // !!! Changer le twig
             $this->context['home_slider'] = \Timber::compile($this->context['woody_components'][$home_slider['landswpr_woody_tpl']], $home_slider);
         }
 
@@ -412,6 +416,8 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
         if (!empty($this->context['post'])) {
             $sections = get_field('section', $this->context['post']->ID);
             if (!empty($sections)) {
+                //TODO: move into $this->context['page_parts];
+                // !!! Changer le twig
                 $this->context['the_sections'] = $this->processWoodySections($sections, $this->context);
             }
         }
