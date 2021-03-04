@@ -358,6 +358,8 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
             $sections = get_field('section', $this->context['post']->ID);
             $this->context['the_sections'] = $this->process->processWoodySections($sections, $this->context);
         }
+
+        $this->context['the_sections'] = apply_filters('woody_replace_sections', $this->context['the_sections']);
     }
 
     protected function getParamsToNoIndex()
