@@ -1,1 +1,12 @@
-<svg height="50" viewBox="0 0 50 50" width="50" xmlns="http://www.w3.org/2000/svg"><g fill="none"><g fill="#000" transform="translate(7.995 34.995238)"><path d="m6.5025 2.6297619v7.24472977h31.5075v-7.24472977z"/><path d="m.7391559.86028652-.01207799 7.20085409h8.43952326l.01207799-7.20085409z" transform="matrix(.98768834 -.15643447 .15643447 .98768834 -.636831 .82972)"/></g><g fill="#0c0c0c"><path d="m42 34.8409201v-20.845682h-24.005v20.845682zm-28.005 4v-28.845682h32.005v28.845682z"/><path d="m9.77144427 36.4053716-4-4h4zm0-24.845682h24.00500003v3.0994737h4v-7.0994737h-32.00500003v28.845682h7.43699483v-4h-3.43699483zm-4 0 4-4v4zm28.00500003 0v-4l4 4zm0 0v-4l4 4zm0 0v3.0994737h4v-7.0994737h-32.00500003v28.845682h7.43699483v-4h-3.43699483v-20.845682zm-24.00500003 0v-4l-4 4zm0 24.845682-4-4h4z" transform="matrix(.98480775 -.17364818 .17364818 .98480775 -3.486431 4.11497)"/></g></g></svg>
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 25.2.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" id="Calque_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 50 50" style="enable-background:new 0 0 50 50;" xml:space="preserve">
+<g transform="translate(1.995 1.995238)">
+	<path d="M12.5,8.7v34.2H44V8.7L12.5,8.7z M42.3,35.8H14.2V10.5h28.1V35.8z"/>
+	<g>
+		<polygon points="22.8,6.5 31.7,5.1 31.9,6.5 33.7,6.5 33.1,3 11.2,6.5 		"/>
+		<polygon points="11.2,33.9 7.9,34.4 4,9.5 11.2,8.3 11.2,6.5 2,7.9 7.3,41.7 11.2,41.1 		"/>
+	</g>
+</g>
+</svg>
