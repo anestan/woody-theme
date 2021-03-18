@@ -132,7 +132,7 @@ const moveBlock = (element, section, tooltip = null) => {
   // Overwrite name with correct field key
   layout.children().first().attr("name", fieldKey);
 
-  openSection(document.querySelector(`[data-id="row-${sectionIndex}"]`), sectionIndex);
+  openSection(document.querySelector(`#acf-group_5afd260eeb4ab [data-id="row-${sectionIndex}"]`), sectionIndex);
 
   if (
     (oldValues.lastElementChild.classList.contains('acf-temp-remove') && oldValues.children.length === 1)
@@ -159,8 +159,9 @@ const toggleMoveTooltip = (open, key, tooltip, select) => {
 }
 
 const openSection = (section) => {
-  if (section.classList.contains('-collapsed'))
-    section.classList.remove('-collapsed');
+  if (section.classList.contains('-collapsed')) {
+      section.classList.remove('-collapsed');
+  }
 }
 
 
