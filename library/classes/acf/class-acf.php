@@ -198,8 +198,6 @@ class WoodyTheme_ACF
      */
     public function focusedTaxonomyTermsLoadField($field)
     {
-        console_log($field, 'taxonomy fields');
-
         $accepted_fields = [
             'focused_taxonomy_terms',
             'list_el_terms', // Not used anymore ?
