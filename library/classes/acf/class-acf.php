@@ -35,19 +35,19 @@ class WoodyTheme_ACF
         add_filter('acf/settings/load_json', [$this, 'acfJsonLoad']);
         add_filter('acf/load_field/type=select', [$this, 'woodyIconLoadField']);
 
-        add_filter('acf/load_field/name=focused_taxonomy_terms', [$this, 'focusedTaxonomyTermsLoadField']);
+        add_filter('acf/load_field/type=select', [$this, 'focusedTaxonomyTermsLoadField']);
         add_filter('acf/load_value/name=focused_taxonomy_terms', [$this, 'termsLoadValue'], 10, 3);
 
-        add_filter('acf/load_field/name=list_el_terms', [$this, 'focusedTaxonomyTermsLoadField']);
+        // add_filter('acf/load_field/name=list_el_terms', [$this, 'focusedTaxonomyTermsLoadField']);
         add_filter('acf/load_value/name=list_el_terms', [$this, 'termsLoadValue'], 10, 3);
 
-        add_filter('acf/load_field/name=list_filter_custom_terms', [$this, 'focusedTaxonomyTermsLoadField']);
+        // add_filter('acf/load_field/name=list_filter_custom_terms', [$this, 'focusedTaxonomyTermsLoadField']);
         add_filter('acf/load_value/name=list_filter_custom_terms', [$this, 'termsLoadValue'], 10, 3);
 
         add_filter('acf/load_field/name=list_filter_taxonomy', [$this, 'pageTaxonomiesLoadField']);
         add_filter('acf/load_value/name=list_filter_taxonomy', [$this, 'termsLoadValue'], 10, 3);
 
-        add_filter('acf/load_field/name=gallery_tags', [$this, 'focusedTaxonomyTermsLoadField']);
+        // add_filter('acf/load_field/name=gallery_tags', [$this, 'focusedTaxonomyTermsLoadField']);
         add_filter('acf/load_value/name=gallery_tags', [$this, 'termsLoadValue'], 10, 3);
 
         add_filter('acf/load_field/name=display_elements', [$this, 'displayElementLoadField'], 10, 3);
@@ -198,6 +198,21 @@ class WoodyTheme_ACF
      */
     public function focusedTaxonomyTermsLoadField($field)
     {
+        console_log($field, 'taxonomy fields');
+
+        $accepted_fields = [
+            'focused_taxonomy_terms',
+            'list_el_terms', // Not used anymore ?
+            'list_filter_custom_terms',
+            'gallery_tags'
+        ];
+
+        $accepted_fields = apply_filters('woody_taxonomy_terms_load_field', $accepted_fields);
+
+        if (!in_array($field['name'], $accepted_fields)) {
+            return $field;
+        }
+
         // Reset field's choices + create $terms for future choices
         $choices = [];
         $terms = [];
