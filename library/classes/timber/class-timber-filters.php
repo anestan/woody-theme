@@ -62,6 +62,7 @@ class WoodyTheme_Timber_Filters
         $twig->addFilter(new Twig_SimpleFilter('translate', [$this, 'translate']));
         $twig->addFilter(new Twig_SimpleFilter('json_encode', [$this, 'jsonEncode']));
         $twig->addFilter(new Twig_SimpleFilter('zeroise', [$this, 'zeroise']));
+        $twig->addFilter(new Twig_SimpleFilter('wpGetAttachmentImageUrl', [$this, 'wpGetAttachmentImageUrl']));
 
         // Debug Woody
         $twig->addFilter(new Twig_SimpleFilter('dump', [$this, 'dump']));
@@ -87,6 +88,13 @@ class WoodyTheme_Timber_Filters
         if (!empty($array) && is_array($array)) {
             return json_encode($array);
         }
+    }
+
+    public function wpGetAttachmentImageUrl($id, $size = 'thumbnail')
+    {
+        $url = wp_get_attachment_image_url($id, $size);
+
+        return $url;
     }
 
     public function zeroise($value, $threshold)
