@@ -716,7 +716,7 @@
             },
             {
                 "key": "field_5f19a1ef8e102",
-                "label": "Options avancées",
+                "label": "Plus d'options",
                 "name": "",
                 "type": "accordion",
                 "instructions": "",
@@ -774,7 +774,7 @@
                 "label": "Titre pour le sommaire",
                 "name": "section_summary_title",
                 "type": "text",
-                "instructions": "Titre court pour le bloc de sommaire",
+                "instructions": "",
                 "required": 0,
                 "conditional_logic": [
                     [{
@@ -784,7 +784,26 @@
                     }]
                 ],
                 "wrapper": {
-                    "width": "30",
+                    "width": "15",
+                    "class": "",
+                    "id": ""
+                },
+                "default_value": "",
+                "placeholder": "",
+                "prepend": "",
+                "append": "",
+                "maxlength": ""
+            },
+            {
+                "key": "field_5f509ba3b8d5a",
+                "label": "Class css",
+                "name": "section_class",
+                "type": "text",
+                "instructions": "",
+                "required": 0,
+                "conditional_logic": 0,
+                "wrapper": {
+                    "width": "15",
                     "class": "",
                     "id": ""
                 },
@@ -1223,6 +1242,11 @@
                 "param": "page_type_and_children",
                 "operator": "!=",
                 "value": "mirror_page"
+            },
+            {
+                "param": "page_type_and_children",
+                "operator": "!=",
+                "value": "custom_frontpage"
             }
         ],
         [{
@@ -1250,6 +1274,17 @@
                 "param": "post_taxonomy",
                 "operator": "==",
                 "value": "leaflet_type:rdbk_free_content"
+            }
+        ],
+        [{
+                "param": "post_type",
+                "operator": "==",
+                "value": "woody_rdbk_leaflets"
+            },
+            {
+                "param": "post_taxonomy",
+                "operator": "==",
+                "value": "leaflet_type:rdbk_traveller_page"
             }
         ]
     ],

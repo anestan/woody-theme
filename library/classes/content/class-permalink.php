@@ -7,11 +7,14 @@
  * @since WoodyTheme 1.0.0
  */
 
+ use Woody\Services\Providers\Wp;
+
 class WoodyTheme_Permalink
 {
     public function __construct()
     {
         $this->registerHooks();
+        $this->wpProvider = new Wp;
     }
 
     protected function registerHooks()
@@ -20,36 +23,36 @@ class WoodyTheme_Permalink
 
         add_action('pll_save_post', [$this, 'savePost'], 10, 3);
         add_action('delete_post', [$this, 'deletePost'], 10);
-        add_action('woody_theme_update', [$this, 'cleanTransient']);
-
         add_action('template_redirect', [$this, 'redirect404'], 999);
     }
 
-    public function woodyGetPermalink($post_id)
+    public function woodyGetPermalink($post_id = null)
     {
-        $return = '';
-        $current_lang = pll_current_language();
-        $posts = get_transient('woody_get_permalink');
-
-        if (!empty($posts[$post_id]) && !empty($posts[$post_id][$current_lang])) {
-            $return = $posts[$post_id][$current_lang];
-        } else {
-            $return = get_permalink($post_id) ?: get_permalink();
-            $posts[$post_id][$current_lang] = $return;
-            set_transient('woody_get_permalink', $posts);
+        if (empty($post_id)) {
+            global $post;
+            if (!is_object($post)) {
+                return;
+            }
+            $post_id = $post->ID;
         }
 
-        return $return;
+        $permalink = wp_cache_get(sprintf('woody_get_permalink_%s', $post_id), 'woody');
+        if (empty($permalink)) {
+            $permalink = get_permalink($post_id);
+            wp_cache_set(sprintf('woody_get_permalink_%s', $post_id), $permalink, 'woody');
+        }
+
+        return $permalink;
     }
 
     public function redirect404()
     {
         global $wp_query, $wp;
-        if ($wp_query->is_404 && !empty($wp->request)) {
+        if ($wp_query->is_404 && empty($wp_query->queried_object_id) && !empty($wp->request)) {
             $permalink = null;
             $post_id = url_to_postid($wp->request);
             if (!empty($post_id)) {
-                $permalink = get_permalink($post_id);
+                $permalink = apply_filters('woody_get_permalink', $post_id);
             } else {
                 $segments = explode('/', $wp->request);
                 $last_segment = end($segments);
@@ -58,7 +61,7 @@ class WoodyTheme_Permalink
                 preg_match('/-([a-z_]{2,})-([0-9]{5,})$/', $last_segment, $sheet_id);
                 if (!empty($sheet_id) && !empty($sheet_id[2])) {
                     $query_result = new \WP_Query([
-                        'lang' => pll_current_language(), // query all polylang languages
+                        'lang' => pll_current_language(),
                         'post_status' => ['publish'],
                         'posts_per_page' => 1,
                         'orderby' => 'ID',
@@ -87,7 +90,7 @@ class WoodyTheme_Permalink
 
                 if (!empty($query_result->posts)) {
                     $post = current($query_result->posts);
-                    $permalink = get_permalink($post->ID);
+                    $permalink = apply_filters('woody_get_permalink', $post->ID);
 
                     if (!empty($permalink)) {
                         $parse_permalink = parse_url($permalink, PHP_URL_PATH);
@@ -123,35 +126,46 @@ class WoodyTheme_Permalink
             }
 
             // Redirect if $permalink exist
-            if (!empty($permalink)) {
-                wp_redirect($permalink, 301, 'Woody');
+            if (!empty($permalink) && parse_url($permalink, PHP_URL_PATH) != '/' . $wp->request) {
+                wp_redirect($permalink, 301, 'Woody Soft 404');
                 exit;
             }
         } elseif (is_singular()) {
             global $post, $page;
             $num_pages = substr_count($post->post_content, '<!--nextpage-->') + 1;
             if ($page > $num_pages) {
-                wp_redirect(get_permalink($post->ID), 301, 'Woody');
+                wp_redirect(apply_filters('woody_get_permalink', $post->ID), 301, 'Woody NexPage');
                 exit;
             }
         }
     }
 
     // --------------------------------
-    // Clean Transient
+    // Clean Cache
     // --------------------------------
     public function savePost($post_id, $post, $update)
     {
-        delete_transient('woody_get_permalink');
+        wp_cache_delete(sprintf('woody_get_permalink_%s', $post_id), 'woody');
+        $this->cacheDeleteChildrenPosts($post_id);
+    }
+
+    public function cacheDeleteChildrenPosts($post_id)
+    {
+        $has_children = $this->wpProvider->hasChildren($post_id);
+        if ($has_children) {
+            $children_pages = $this->wpProvider->getPages($post_id);
+            if (!empty($children_pages)) {
+                foreach ($children_pages as $children_page) {
+                    wp_cache_delete(sprintf('woody_get_permalink_%s', $children_page->ID), 'woody');
+                    // Recursively
+                    $this->cacheDeleteChildrenPosts($children_page->ID, $pre_post_update);
+                }
+            }
+        }
     }
 
     public function deletePost($post_id)
     {
-        delete_transient('woody_get_permalink');
-    }
-
-    public function cleanTransient()
-    {
-        delete_transient('woody_get_permalink');
+        wp_cache_delete(sprintf('woody_get_permalink_%s', $post_id), 'woody');
     }
 }

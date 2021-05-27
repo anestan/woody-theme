@@ -10,6 +10,7 @@
 abstract class WoodyTheme_TemplateAbstract
 {
     protected $context = [];
+    protected $globals = [];
 
     // Force les classes filles à définir cette méthode
     abstract protected function setTwigTpl();
@@ -53,32 +54,79 @@ abstract class WoodyTheme_TemplateAbstract
 
     public function timberCompileData($data)
     {
-        $data['globals']['post'] = $this->context['post'];
-        $data['globals']['post_title'] = $this->context['post_title'];
-        $data['globals']['post_id'] = $this->context['post_id'];
-        $data['globals']['page_type'] = $this->context['page_type'];
-        $data['globals']['sheet_id'] = $this->context['sheet_id'];
-        $data['globals']['woody_options_pages'] = $this->getWoodyOptionsPagesValues();
-        $data['globals']['tags'] = $this->getTags($data['globals']['post_id']);
-        $data['globals']['current_lang'] = apply_filters('woody_pll_current_language', null);
-        $data['globals']['current_season'] = apply_filters('woody_pll_current_season', null);
-        $data['globals']['current_locale'] = pll_current_language();
-        $data['globals']['languages'] = apply_filters('woody_pll_the_locales', null);
-
+        $this->setGlobals(); //TODO: To test if we can move this on construct
+        $data['globals'] = apply_filters('woody_timber_compile_globals', $this->globals);
         return $data;
     }
 
-    public function getTags($post_id)
+    private function setGlobals()
+    {
+        if (empty($this->globals['post_title']) && !empty($this->context['post_title'])) {
+            $this->globals['post_title'] = $this->context['post_title'];
+        }
+
+        if (empty($this->globals['post_id']) && !empty($this->context['post_id'])) {
+            $this->globals['post_id'] = $this->context['post_id'];
+        }
+
+        if (empty($this->globals['page_type']) && !empty($this->context['page_type'])) {
+            $this->globals['page_type'] = $this->context['page_type'];
+        }
+
+        if (empty($this->globals['sheet_id']) && !empty($this->context['sheet_id'])) {
+            $this->globals['sheet_id'] = $this->context['sheet_id'];
+        }
+
+        if (empty($this->globals['woody_options_pages'])) {
+            $this->globals['woody_options_pages'] = $this->getWoodyOptionsPagesValues();
+        }
+
+        if (empty($this->globals['tags'])) {
+            $this->globals['tags'] = $this->getTags($this->context['post_id']);
+        }
+
+        if (empty($this->globals['current_lang'])) {
+            $this->globals['current_lang'] = apply_filters('woody_pll_current_language', null);
+        }
+
+        if (empty($this->globals['current_season'])) {
+            $this->globals['current_season'] = apply_filters('woody_pll_current_season', null);
+        }
+
+        if (empty($this->globals['current_locale'])) {
+            $this->globals['current_locale'] = pll_current_language();
+        }
+
+        if (empty($this->globals['languages'])) {
+            $this->globals['languages'] = apply_filters('woody_pll_the_locales', null);
+        }
+    }
+
+    private function getTags($post_id)
     {
         $return = [];
         $taxonomies = ['places', 'seasons', 'themes'];
 
         foreach ($taxonomies as $taxonomy) {
+            $all_taxonomy = get_terms(array(
+                'taxonomy' => $taxonomy,
+                'hide_empty' => false,
+            ));
+
+            $all_terms = [];
+            foreach ($all_taxonomy as $term) {
+                $all_terms[$term->term_id] = $term->slug;
+            }
+
             $return[$taxonomy] = [];
             $terms = get_the_terms($post_id, $taxonomy);
             if ($terms != false && !is_wp_error($terms)) {
                 foreach ($terms as $term) {
-                    $return[$taxonomy][] = $term->name;
+                    if ($term->parent != 0) {
+                        $return[$taxonomy][$all_terms[$term->parent]][] = $term->name;
+                    } else {
+                        $return[$taxonomy][] = $term->name;
+                    }
                 }
             }
         }
@@ -86,7 +134,7 @@ abstract class WoodyTheme_TemplateAbstract
         return $return;
     }
 
-    public function getWoodyOptionsPagesValues()
+    private function getWoodyOptionsPagesValues()
     {
         $return = [];
 
@@ -124,15 +172,17 @@ abstract class WoodyTheme_TemplateAbstract
         $this->context['enabled_woody_options'] = WOODY_OPTIONS;
         $this->context['woody_access_staging'] = WOODY_ACCESS_STAGING;
 
+
+        $the_title = get_field('woodyseo_meta_title');
         // SEO Context
-        $this->context['title'] = (!empty(get_field('field_5d7f7dea20bb1'))) ? woody_untokenize(get_field('woodyseo_meta_title')) : get_the_title() . ' | ' . $this->context['site']['name'];
-        $this->context['title'] = apply_filters('woody_seo_edit_meta_string', $this->context['title']);
+
+        $this->context['title'] = (!empty($the_title)) ? woody_untokenize($the_title) : html_entity_decode(get_the_title()) . ' | ' . $this->context['site']['name'];
+        $this->context['title'] = apply_filters('woody_seo_transform_pattern', $this->context['title']);
         $this->context['metas'] = $this->setMetadata();
         $this->context['custom_meta'] = get_field('woody_custom_meta', 'options');
 
         // Woody options pages
         $this->context['woody_options_pages'] = $this->getWoodyOptionsPagesValues();
-
 
         /******************************************************************************
          * Sommes nous dans le cas d'une page miroir ?
@@ -221,7 +271,7 @@ abstract class WoodyTheme_TemplateAbstract
         }
 
         // Add more tools
-        $this->context['subtheme_more_tools'] = apply_filters('more_tools', []);
+        $this->context['subtheme_more_tools'] = apply_filters('more_tools', [], $tools_blocks);
 
         // Define SubWoodyTheme_TemplateParts
         $this->addHeaderFooter($tools_blocks);
@@ -387,7 +437,7 @@ abstract class WoodyTheme_TemplateAbstract
             foreach ($woody_seo_data as $data_key => $data) {
                 if (is_string($data)) {
                     $woody_seo_data[$data_key] = trim($data);
-                    $data = apply_filters('woody_seo_edit_meta_string', $data);
+                    $data = apply_filters('woody_seo_transform_pattern', $data);
                 }
 
                 switch ($data_key) {
@@ -419,7 +469,7 @@ abstract class WoodyTheme_TemplateAbstract
                         if (!empty($data)) {
                             $return['og:title']['#attributes']['content'] = woody_untokenize($data);
                         } elseif (!empty(get_field('woodyseo_meta_title'))) {
-                            $return['og:title']['#attributes']['content'] = woody_untokenize(get_field('woodyseo_meta_title'));
+                            $return['og:title']['#attributes']['content'] = apply_filters('woody_seo_transform_pattern', woody_untokenize(get_field('woodyseo_meta_title')));
                         } else {
                             $return['og:title']['#attributes']['content'] = get_the_title() . ' | ' . $this->context['site']['name'];
                         }
@@ -460,7 +510,7 @@ abstract class WoodyTheme_TemplateAbstract
                         if (!empty($data)) {
                             $return['twitter:title']['#attributes']['content'] = woody_untokenize($data);
                         } elseif (!empty(get_field('woodyseo_meta_title'))) {
-                            $return['twitter:title']['#attributes']['content'] = woody_untokenize(get_field('woodyseo_meta_title'));
+                            $return['twitter:title']['#attributes']['content'] = apply_filters('woody_seo_transform_pattern', woody_untokenize(get_field('woodyseo_meta_title')));
                         } else {
                             $return['twitter:title']['#attributes']['content'] = get_the_title() . ' | ' . $this->context['site']['name'];
                         }
@@ -548,7 +598,10 @@ abstract class WoodyTheme_TemplateAbstract
             if (!empty($SubWoodyTheme_TemplateParts->website_logo)) {
                 $this->context['website_logo'] = $SubWoodyTheme_TemplateParts->website_logo;
             }
-            $this->context['home_url'] = home_url();
+
+            $pll_options = get_option('polylang');
+
+            $this->context['home_url'] = pll_home_url();
             $this->context['page_parts'] = $SubWoodyTheme_TemplateParts->getParts();
         }
     }
@@ -713,7 +766,7 @@ abstract class WoodyTheme_TemplateAbstract
 
         if (!empty($search_post_id)) {
             $data = [];
-            $data['search_url'] = get_permalink(pll_get_post($search_post_id));
+            $data['search_url'] = apply_filters('woody_get_permalink', pll_get_post($search_post_id));
 
             $suggest = apply_filters('woody_get_field_option', 'es_search_block_suggests');
             if (!empty($suggest) && !empty($suggest['suggest_pages'])) {
@@ -759,11 +812,11 @@ abstract class WoodyTheme_TemplateAbstract
         $favorites_post_id = apply_filters('woody_get_field_option', 'favorites_page_url');
         if (!empty($favorites_post_id)) {
             $data = [];
-            $data['favorites_page_url'] = get_permalink(pll_get_post($favorites_post_id));
+            $data['favorites_page_url'] = apply_filters('woody_get_permalink', pll_get_post($favorites_post_id));
 
             // Set a default template
             $tpl = apply_filters('favorites_block_tpl', null);
-            $template = $tpl['template'] ?: $this->context['woody_components']['woody_widgets-favorites_block-tpl_01'];
+            $template = !empty($tpl['template']) ? $tpl['template'] : $this->context['woody_components']['woody_widgets-favorites_block-tpl_01'];
 
             // Allow data override
             $data = apply_filters('favorites_block_data', $data);

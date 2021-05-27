@@ -27,6 +27,11 @@ class WoodyTheme_Cleanup_Front
         add_filter('img_caption_shortcode', array($this, 'removeFigureInlineStyle'), 10, 3);
         // Disable XMLRPC
         add_filter('xmlrpc_enabled', '__return_false');
+        // Add Body Class
+        add_filter('body_class', [$this, 'bodyClass']);
+        // Remove private/protected prefixes
+        add_filter('private_title_format', [$this, 'removePrivatePrefix']);
+        add_filter('protected_title_format', [$this, 'removePrivatePrefix']);
     }
 
     public function cleanupHead()
@@ -104,5 +109,16 @@ class WoodyTheme_Cleanup_Front
             return '<figure ' . $atts['id'] . ' class="' . esc_attr($class) . '">'
                 . do_shortcode($content) . '<figcaption class="wp-caption-text">' . $atts['caption'] . '</figcaption></figure>';
         }
+    }
+
+    public function bodyClass($body_classes)
+    {
+        // Added ENV to body classes
+        return array_merge($body_classes, [WP_ENV]);
+    }
+
+    public function removePrivatePrefix()
+    {
+        return '%s';
     }
 }

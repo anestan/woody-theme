@@ -10,6 +10,7 @@
 use Woody\Modules\GroupQuotation\GroupQuotation;
 use WoodyProcess\Tools\WoodyTheme_WoodyProcessTools;
 use WoodyProcess\Process\WoodyTheme_WoodyProcess;
+use WoodyProcess\Compilers\WoodyTheme_WoodyCompilers;
 
 class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
 {
@@ -21,6 +22,7 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
     {
         $this->tools = new WoodyTheme_WoodyProcessTools;
         $this->process = new WoodyTheme_WoodyProcess;
+        $this->compilers = new WoodyTheme_WoodyCompilers;
         parent::__construct();
     }
 
@@ -69,7 +71,7 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
         $query = str_replace('-', ' ', $last_segment);
 
         $suggestions = [];
-        // $suggestions = get_transient('woody_404_suggestions_' . md5($query));
+        // $suggestions = wp_cache_get('woody_404_suggestions_' . md5($query), 'woody');
         // if (empty($suggestions)) {
         //     $suggestions = [];
         //     $response = apply_filters('woody_pages_search', ['query' => $query, 'size' => 4]);
@@ -87,7 +89,7 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
         //     }
 
         //     if (!empty($suggestions)) {
-        //         set_transient('woody_404_suggestions_' . md5($query), $suggestions, 1209600); // Keep 2 weeks
+        //         wp_cache_set('woody_404_suggestions_' . md5($query), $suggestions, 'woody'); // Keep 2 weeks
         //     }
         // }
 
@@ -96,7 +98,7 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
             'subtitle' =>  '404 - ' . __("Page non trouvée", 'woody-theme'),
             'text' => __("La page que vous recherchez a peut-être été supprimée ou est temporairement indisponible.", 'woody-theme'),
             'suggestions' => $suggestions,
-            'search' => get_permalink(get_field('es_search_page_url', 'options'))
+            'search' => apply_filters('woody_get_permalink', get_field('es_search_page_url', 'options'))
         ];
 
         $custom = apply_filters('woody_404_custom', $vars);
@@ -123,7 +125,8 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
                 'muted' => true,
                 'autoplay' => true,
                 'controls' => ['volume', 'mute'],
-                'loop' => ['active' => true]
+                'loop' => ['active' => true],
+                'youtube' => ['noCookie' => true]
             ];
 
             $home_slider['plyr_options'] = json_encode($plyr_options);
@@ -137,7 +140,12 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
                             $home_slider['landswpr_slides'][$slide_key]['landswpr_slide_media']['landswpr_slide_embed_thumbnail_url'] = embedProviderThumbnail($slide['landswpr_slide_media']['landswpr_slide_embed']);
                         }
                     }
+
+                    if (!empty($slide['landswpr_slide_media']) && $slide['landswpr_slide_media']['landswpr_slide_media_type'] == 'img' && !empty($slide['landswpr_slide_media']['landswpr_slide_img'])) {
+                        $home_slider['landswpr_slides'][$slide_key]['landswpr_slide_media']['landswpr_slide_img']['lazy'] = 'disabled';
+                    }
                 }
+
                 $this->context['home_slider'] = \Timber::compile($this->context['woody_components'][$home_slider['landswpr_woody_tpl']], $home_slider);
             }
 
@@ -177,8 +185,10 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
 
             // Si le module groupe est activé
             if (in_array('groups', $this->context['enabled_woody_options'])) {
+                // Instancier GroupQuotation peut importe les conditions, à partir du moment ou le module groups est activé
+                $groupQuotation = new GroupQuotation;
+
                 if ($trip_infos['the_price']['price_type'] == 'component_based') {
-                    $groupQuotation = new GroupQuotation;
                     $trip_infos['the_price'] = $groupQuotation->calculTripPrice($trip_infos['the_price']);
                 } elseif ($trip_infos['the_price']['price_type'] == 'no_tariff') {
                     $trip_infos['the_price']['price'] = "Sans tarif";
@@ -232,112 +242,16 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
             }
         }
 
+        // Compilation de l'en tête de page et du visuel et accroche pour les pages qui ne sont pas de type "accueil"
         if (!empty($page_type[0]) && $page_type[0]->slug != 'front_page') {
-            /*********************************************
-             * Compilation de l'en tête de page pour les pages qui ne sont pas de type "accueil"
-             *********************************************/
-            $page_teaser = [];
-            $page_teaser = getAcfGroupFields('group_5b2bbb46507bf', $this->context['post']);
-            $fading_hero = false;
-            $page_hero_tpl = substr(getAcfGroupFields('group_5b052bbee40a4', $this->context['post'])['heading_woody_tpl'], -6);
-
-            if ($page_hero_tpl == 'tpl_05' || $page_hero_tpl == 'tpl_06') {
-                $fading_hero = true;
+            $this->context['page_teaser'] = $this->compilers->formatPageTeaser($this->context);
+            $page_hero = $this->compilers->formatPageHero($this->context);
+            if (!empty($page_hero)) {
+                $this->context['page_hero'] = $page_hero['view'];
+                $this->context['body_class'] = $this->context['body_class'] . ' has-hero'; // Add Class has-hero
+                $this->context['body_class'] = $this->context['body_class'] . ' has-' . $page_hero['data']['heading_woody_tpl']; // Add Class has-hero-block-tpl
             }
-
-            if ($page_type[0]->slug != 'front_page' and !empty($page_teaser)) {
-                $page_teaser['page_teaser_title'] = (!empty($page_teaser['page_teaser_display_title'])) ? str_replace('-', '&#8209', $this->context['post_title']) : '';
-                $page_teaser['the_classes'] = [];
-                $page_teaser['the_classes'][] = (!empty($page_teaser['background_img_opacity'])) ? $page_teaser['background_img_opacity'] : '';
-                $page_teaser['the_classes'][] = (!empty($page_teaser['background_color'])) ? $page_teaser['background_color'] : '';
-                $page_teaser['the_classes'][] = (!empty($page_teaser['border_color'])) ? $page_teaser['border_color'] : '';
-                $page_teaser['the_classes'][] = (empty($page_teaser['background_color']) and $fading_hero) ? 'bg-transparent' : '';
-                $page_teaser['the_classes'][] = (!empty($page_teaser['teaser_margin_bottom'])) ? $page_teaser['teaser_margin_bottom'] : '';
-                $page_teaser['the_classes'][] = (!empty($page_teaser['background_img'])) ? 'isRel' : '';
-                $page_teaser['classes'] = (!empty($page_teaser['the_classes'])) ? implode(' ', $page_teaser['the_classes']) : '';
-                $page_teaser['breadcrumb'] = $this->createBreadcrumb();
-                $page_teaser['trip_infos'] = (!empty($this->context['trip_infos'])) ? $this->context['trip_infos'] : '';
-                $page_teaser['social_shares'] = (!empty($this->context['social_shares'])) ? $this->context['social_shares'] : '';
-
-                if (!empty($page_teaser['page_teaser_add_media'])) {
-                    unset($page_teaser['profile']);
-                } elseif (!empty($page_teaser['page_teaser_add_profile'])) {
-                    unset($page_teaser['page_teaser_img']);
-                }
-
-                if (!empty($page_teaser['page_teaser_media_type']) && $page_teaser['page_teaser_media_type'] == 'map') {
-                    $page_teaser['post_coordinates'] = (!empty(getAcfGroupFields('group_5b3635da6529e', $this->context['post']))) ? getAcfGroupFields('group_5b3635da6529e', $this->context['post']) : '';
-                }
-
-                if (!empty($page_teaser['page_teaser_display_created'])) {
-                    $page_teaser['created'] = get_the_date();
-                }
-
-                // Unset breadcrumb if checked in hide page zones options
-                if (!empty($this->context['hide_page_zones']) && in_array('breadcrumb', $this->context['hide_page_zones'])) {
-                    unset($page_teaser['breadcrumb']);
-                }
-
-                if (!empty($page_teaser['page_teaser_img']) && is_array($page_teaser['page_teaser_img'])) {
-                    $page_teaser['page_teaser_img']['attachment_more_data'] = (!empty($page_teaser['page_teaser_img']['ID'])) ? $this->tools->getAttachmentMoreData($page_teaser['page_teaser_img']['ID']) : [];
-                }
-
-                $page_teaser['page_teaser_pretitle'] = (!empty($page_teaser['page_teaser_pretitle'])) ? $this->tools->replacePattern($page_teaser['page_teaser_pretitle'], $this->context['post_id']) : '';
-                $page_teaser['page_teaser_subtitle'] = (!empty($page_teaser['page_teaser_subtitle'])) ? $this->tools->replacePattern($page_teaser['page_teaser_subtitle'], $this->context['post_id']) : '';
-                $page_teaser['page_teaser_desc'] = (!empty($page_teaser['page_teaser_desc'])) ? $this->tools->replacePattern($page_teaser['page_teaser_desc'], $this->context['post_id']) : '';
-
-                // Existing profile
-                if (!empty($page_teaser['page_teaser_add_profile']) && !empty($page_teaser['profile']['use_profile']) && !empty($page_teaser['profile']['profile_post'])) {
-                    $profile_id = $page_teaser['profile']['profile_post'];
-                    $page_teaser['profile'] = [
-                        'profile_title' => get_the_title($profile_id),
-                        'profile_picture' => get_field('profile_picture', $profile_id),
-                        'profile_description' => get_field('profile_description', $profile_id)
-                    ];
-                }
-
-                $page_teaser = apply_filters('woody_custom_page_teaser', $page_teaser, $this->context);
-
-                $this->context['page_teaser'] = \Timber::compile($this->context['woody_components'][$page_teaser['page_teaser_woody_tpl']], $page_teaser);
-            }
-
-            /*********************************************
-             * Compilation du visuel et accroche pour les pages qui ne sont pas de type "accueil"
-             *********************************************/
-
-            $page_hero = [];
-            $page_hero = getAcfGroupFields('group_5b052bbee40a4', $this->context['post']);
-            if (!empty($page_hero['page_heading_media_type']) && ($page_hero['page_heading_media_type'] == 'movie' && !empty($page_hero['page_heading_movie']) || ($page_hero['page_heading_media_type'] == 'img' && !empty($page_hero['page_heading_img'])))) {
-                if (empty($page_teaser['page_teaser_display_title'])) {
-                    $page_hero['title_as_h1'] = true;
-                }
-
-                if (!empty($page_hero['page_heading_img'])) {
-                    $page_hero['page_heading_img']['attachment_more_data'] = (!empty($page_hero['page_heading_img']['ID'])) ? $this->tools->getAttachmentMoreData($page_hero['page_heading_img']['ID']) : [];
-                }
-
-                if (!empty($page_hero['page_heading_add_social_movie']) && !empty($page_hero['page_heading_social_movie'])) {
-                    preg_match_all('@src="([^"]+)"@', $page_hero['page_heading_social_movie'], $result);
-                    if (!empty($result[1]) && !empty($result[1][0])) {
-                        $iframe_url = $result[1][0];
-
-                        if (strpos($iframe_url, 'youtube') != false) {
-                            $yt_params_url = $iframe_url . '?&autoplay=0&rel=0';
-                            $page_hero['page_heading_social_movie'] = str_replace($iframe_url, $yt_params_url, $page_hero['page_heading_social_movie']);
-                        }
-                    }
-                }
-                $page_hero['isfrontpage']= !empty(get_option('page_on_front')) && get_option('page_on_front') == pll_get_post($this->context['post_id']) ? true : false ;
-                $page_hero['title'] = (!empty($page_hero['title'])) ? $this->tools->replacePattern($page_hero['title'], $this->context['post_id']) : '';
-                $page_hero['pretitle'] = (!empty($page_hero['pretitle'])) ? $this->tools->replacePattern($page_hero['pretitle'], $this->context['post_id']) : '';
-                $page_hero['subtitle'] = (!empty($page_hero['subtitle'])) ? $this->tools->replacePattern($page_hero['subtitle'], $this->context['post_id']) : '';
-                $page_hero['description'] = (!empty($page_hero['description'])) ? $this->tools->replacePattern($page_hero['description'], $this->context['post_id']) : '';
-
-                $page_hero['title'] = (!empty($page_hero['title'])) ? str_replace('-', '&#8209', $page_hero['title']) : '';
-                $this->context['page_hero'] = \Timber::compile($this->context['woody_components'][$page_hero['heading_woody_tpl']], $page_hero);
-            }
-
-            $this->context = apply_filters('woody_page_context', $this->context);
+            // Add class "has-hero" to body if page hero is here
         }
 
         // Si on est sur la page favoris, on ajoute un bouton pour l'impression
@@ -345,47 +259,8 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
         if (!empty($is_fav) && $is_fav === $this->context['post_id']) {
             $this->context['printable'] = true;
         }
-    }
 
-    protected function createBreadcrumb()
-    {
-        $data = [];
-        $breadcrumb = '';
-        $current_post_id = $this->context['post']->ID;
-
-        // On ajoute la page d'accueil
-        $front_id = get_option('page_on_front');
-        if (!empty($front_id)) {
-            $data['items'][] = [
-                'title' => get_the_title($front_id),
-                'url' => apply_filters('woody_get_permalink', $front_id)
-            ];
-        }
-
-        // On ajoute toutes les pages parentes
-        $ancestors_ids = get_post_ancestors($current_post_id);
-        if (!empty($ancestors_ids) && is_array($ancestors_ids)) {
-            $ancestors_ids = array_reverse($ancestors_ids);
-            foreach ($ancestors_ids as $ancestor_id) {
-                $data['items'][] = [
-                    'title' => get_the_title($ancestor_id),
-                    'url' => apply_filters('woody_get_permalink', $ancestor_id)
-                ];
-            }
-        }
-
-        // On ajoute la page courante
-        $data['items'][] = [
-            'title' => get_the_title($current_post_id),
-            'url' => apply_filters('woody_get_permalink', $current_post_id)
-        ];
-
-        $tpl = apply_filters('breadcrumb_tpl', null);
-        $template = (!empty($tpl['template']) && !empty($this->context['woody_components'][$tpl['template']])) ? $this->context['woody_components'][$tpl['template']] : $this->context['woody_components']['woody_widgets-breadcrumb-tpl_01'];
-
-        $breadcrumb = Timber::compile($template, $data);
-
-        return $breadcrumb;
+        $this->context = apply_filters('woody_page_context', $this->context);
     }
 
     protected function commonContext()
@@ -510,6 +385,37 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
         }
     }
 
+    // TODO : Move to addon-hawwwai with the playlist context
+    protected function customPermalinkPlaylistId($url)
+    {
+        $id = 0;
+
+        if (!empty($url)) {
+            $custom_permalink = str_replace(pll_home_url(), '', $url);
+            $query_result = new \WP_Query([
+                'lang' => pll_current_language(),
+                'post_type' => 'page',
+                'post_status' => 'publish',
+                'posts_per_page' => 1,
+                'meta_query'  => [
+                    'relation' => 'AND',
+                    [
+                        'key'     => 'custom_permalink',
+                        'value'   => $custom_permalink,
+                        'compare' => '=',
+                    ]
+                ]
+            ]);
+
+            if (empty($query_result->posts)) {
+                return $id;
+            }
+
+            $id = $query_result->posts[0]->ID;
+        }
+        return $id;
+    }
+
     protected function playlistContext()
     {
         $this->context['body_class'] .= ' apirender apirender-playlist apirender-wordpress';
@@ -524,6 +430,11 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
 
         if ($playlist_type == 'autoselect' && !empty($existing_playlist['existing_playlist_autoselect_url']) && !empty($existing_playlist['playlist_autoselect_id'])) {
             $post_id = url_to_postid($existing_playlist['existing_playlist_autoselect_url']);
+
+            if ($post_id == 0 && is_plugin_active('custom-permalinks/custom-permalinks.php')) {
+                $post_id = $this->customPermalinkPlaylistId($existing_playlist['existing_playlist_autoselect_url']);
+            }
+
             $playlistConfId = get_field('field_5b338ff331b17', $post_id);
             $autoselect_id = $existing_playlist['playlist_autoselect_id'];
         } else {
@@ -566,6 +477,11 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
         // Si un identifiant de précochage est présent, on le passe à l'apirender
         if (!empty($autoselect_id)) {
             $query['autoselect_id'] = $autoselect_id;
+            $this->context['title'] .= sprintf(' | %s %s', __('Sélection', 'woody-theme'), $autoselect_id);
+        }
+
+        if (!empty($query['listpage']) && is_numeric($query['listpage'])) {
+            $this->context['title'] .= sprintf(' | %s %s', __('Page', 'woody-theme'), $query['listpage']);
         }
 
         // Get from Apirender
@@ -576,16 +492,36 @@ class WoodyTheme_Template_Page extends WoodyTheme_TemplateAbstract
             $this->context['playlist_tourism']['confId'] = $playlistConfId;
         }
 
-        // Return template
-        if (empty($this->context['playlist_tourism']['content'])) {
-            $this->context['playlist_tourism']['content'] = '<center style="margin: 80px 0">Playlist non configurée</center>';
-            status_header('410');
-        }
+        // Add next and prev rel link
+        if (!empty($this->context['playlist_tourism']['hasNextPage'])) {
+            $listpage = filter_input(INPUT_GET, 'listpage', FILTER_VALIDATE_INT);
+            if (!empty($listpage) && $listpage != 1) {
+                $prev = $listpage-1;
+                $next = $listpage+1;
+                $this->context['metas']['prev'] = [
+                    '#tag' => 'link',
+                    '#attributes' => [
+                        'href' => $prev != 1 ? $this->context['current_url'] . '?listpage=' . $prev : $this->context['current_url'],
+                        'rel' => "prev"
+                    ]
+                ];
 
-        // handle api error
-        if (isset($this->context['playlist_tourism']['status'])) {
-            $code = intval($this->context['playlist_tourism']['status']);
-            status_header($code);
+                $this->context['metas']['next'] = [
+                    '#tag' => 'link',
+                    '#attributes' => [
+                        'href' => $this->context['current_url'] . '?listpage=' . $next,
+                        'rel' => "next"
+                    ]
+                ];
+            } else {
+                $this->context['metas']['next'] = [
+                    '#tag' => 'link',
+                    '#attributes' => [
+                        'href' => $this->context['current_url'] . '?listpage=' . 2,
+                        'rel' => "next"
+                    ]
+                ];
+            }
         }
     }
 

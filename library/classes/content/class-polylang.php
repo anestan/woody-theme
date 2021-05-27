@@ -102,13 +102,12 @@ class WoodyTheme_Polylang
         __('max', 'woody-theme');
         __('pers.', 'woody-theme');
         __('Demander un devis', 'woody-theme');
-        __('jour', 'woody-theme');
-        __('jours', 'woody-theme');
         __('personne', 'woody-theme');
         __('personnes', 'woody-theme');
         __('Départ', 'woody-theme');
         __('Arrivée', 'woody-theme');
         __('Etape', 'woody-theme');
+        __('Réserver', 'woody-theme');
 
         // Circuits
         __('J', 'woody-theme');
@@ -134,6 +133,8 @@ class WoodyTheme_Polylang
         __("Voir la carte", 'woody-theme');
         __("Partager sur Facebook", 'woody-theme');
         __("Partager sur Twitter", 'woody-theme');
+        __("Partager sur LinkedIn", 'woody-theme');
+        __("Partager sur WhatsApp", 'woody-theme');
         __("Partager sur Google+", 'woody-theme');
         __("Partager sur Instagram", 'woody-theme');
         __("Partager sur Pinterest", 'woody-theme');
@@ -154,6 +155,8 @@ class WoodyTheme_Polylang
         __("semaine", 'woody-theme');
         __("semaines", 'woody-theme');
         __("mois", 'woody-theme');
+        __("Sélection", 'woody-theme');
+        __("Page", 'woody-theme');
         __("Pages", 'woody-theme');
         __("Offre touristique", 'woody-theme');
         __("Désolé, aucun contenu touristique ne correspond à votre recherche", 'woody-theme');
@@ -285,5 +288,28 @@ class WoodyTheme_Polylang
         __('Voir les webcams', 'woody-theme');
         __('Flux erroné !', 'woody-theme');
         __('Module Infoneige non configuré !', 'woody-theme');
+        __('Enneigement', 'woody-theme');
+        __('Hauteur', 'woody-theme');
+        __('Pistes ouvertes', 'woody-theme');
+        __('Risque d\'avalanche', 'woody-theme');
+        __('Limité', 'woody-theme');
+        __('Moyen', 'woody-theme');
+        __('Élevé', 'woody-theme');
+        __('Non spécifié', 'woody-theme');
+        __('Qualité de la neige', 'woody-theme');
+        __('En live', 'woody-theme');
+        __('Toute l\'info live', 'woody-theme');
+        __('Altitude', 'woody-theme');
+        __('Fraîche', 'woody-theme');
+        __('Douce', 'woody-theme');
+        __('Dure', 'woody-theme');
+        __('Humide', 'woody-theme');
+        __('De printemps', 'woody-theme');
+        __('Matin', 'woody-theme');
+        __('Après-midi', 'woody-theme');
+        __('Ouverte', 'woody-theme');
+        __('Fermée', 'woody-theme');
+        __('Prévision d\'ouverture', 'woody-theme');
+        __('Liaison', 'woody-theme');
     }
 }
